@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stop Motion Studio</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><span class="dot"></span>Stop Motion Studio</h1>
+  </header>
+
+  <main class="layout">
+    <section class="viewer">
+      <div class="stage" id="stage">
+        <canvas id="frameCanvas"></canvas>
+        <video id="live" autoplay playsinline muted></video>
+        <div class="flash" id="flash"></div>
+        <div class="badge" id="badge">LIVE</div>
+        <div class="message" id="message" hidden>
+          <p id="messageText"></p>
+          <button id="retryBtn" class="btn">Try again</button>
+        </div>
+      </div>
+
+      <div class="filmstrip" id="filmstrip" aria-label="Captured frames">
+        <p class="empty">Captured frames will appear here. Press <kbd>Space</kbd> to capture.</p>
+      </div>
+    </section>
+
+    <aside class="panel" aria-label="Controls">
+      <label class="field">
+        <span class="field-label">Camera</span>
+        <select id="cameraSelect" disabled>
+          <option>Waiting for camera…</option>
+        </select>
+      </label>
+
+      <div class="buttons">
+        <button id="captureBtn" class="btn btn-capture" title="Capture frame (Space)" disabled>
+          <span class="shutter"></span>
+          Capture
+        </button>
+        <button id="undoBtn" class="btn" title="Undo last frame (Backspace)" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+          Undo
+        </button>
+        <button id="playBtn" class="btn" title="Play / Stop (P)" disabled>
+          <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>
+          <svg class="icon-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="1.5"/></svg>
+          <span class="label">Play</span>
+        </button>
+        <button id="downloadBtn" class="btn btn-wide" title="Download video" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+          <span class="label">Download</span>
+        </button>
+      </div>
+
+      <div class="settings">
+        <label class="slider">
+          <span>Speed <output id="fpsOut">8</output> fps</span>
+          <input id="fpsInput" type="range" min="1" max="30" step="1" value="8">
+        </label>
+        <label class="slider">
+          <span>Live ghost <output id="ghostOut">25</output>%</span>
+          <input id="ghostInput" type="range" min="0" max="50" step="5" value="25">
+        </label>
+      </div>
+
+      <div class="stats">
+        <span><strong id="frameCount">0</strong> frames · <span id="duration">0.0s</span></span>
+        <button id="clearBtn" class="btn btn-quiet" disabled>Start over</button>
+      </div>
+
+      <ul class="hints">
+        <li><kbd>Space</kbd> capture</li>
+        <li><kbd>Backspace</kbd> undo</li>
+        <li><kbd>P</kbd> play / stop</li>
+      </ul>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
