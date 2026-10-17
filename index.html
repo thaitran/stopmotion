@@ -7,10 +7,6 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="topbar">
-    <h1><span class="dot"></span>Stop Motion Studio</h1>
-  </header>
-
   <main class="layout">
     <section class="viewer">
       <div class="stage" id="stage">
@@ -30,21 +26,25 @@
     </section>
 
     <aside class="panel" aria-label="Controls">
-      <label class="field">
-        <span class="field-label">Camera</span>
+      <div class="field">
+        <label class="field-label" for="cameraSelect">Camera</label>
         <select id="cameraSelect" disabled>
           <option>Waiting for camera…</option>
         </select>
-      </label>
+        <label class="check">
+          <input id="mirrorInput" type="checkbox">
+          <span>Mirror image</span>
+        </label>
+      </div>
 
       <div class="buttons">
         <button id="captureBtn" class="btn btn-capture" title="Capture frame (Space)" disabled>
           <span class="shutter"></span>
           Capture
         </button>
-        <button id="undoBtn" class="btn" title="Undo last frame (Backspace)" disabled>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
-          Undo
+        <button id="removeBtn" class="btn" title="Remove selected frame (Backspace)" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg>
+          Remove
         </button>
         <button id="playBtn" class="btn" title="Play / Stop (P)" disabled>
           <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>
@@ -57,14 +57,31 @@
         </button>
       </div>
 
+      <div class="sound">
+        <div class="section-head">
+          <span class="field-label">Sound</span>
+          <span id="audioStatus" class="audio-status">No audio yet</span>
+        </div>
+        <select id="micSelect" aria-label="Microphone">
+          <option value="">Default microphone</option>
+        </select>
+        <div class="sound-buttons">
+          <button id="recordAudioBtn" class="btn btn-record" title="Record audio (R)" disabled>
+            <span class="rec-dot"></span>
+            <span class="label">Record audio</span>
+          </button>
+          <button id="removeAudioBtn" class="btn btn-quiet" disabled>Remove</button>
+        </div>
+      </div>
+
       <div class="settings">
         <label class="slider">
           <span>Speed <output id="fpsOut">8</output> fps</span>
           <input id="fpsInput" type="range" min="1" max="30" step="1" value="8">
         </label>
         <label class="slider">
-          <span>Live ghost <output id="ghostOut">25</output>%</span>
-          <input id="ghostInput" type="range" min="0" max="50" step="5" value="25">
+          <span>Live ghost <output id="ghostOut">50</output>%</span>
+          <input id="ghostInput" type="range" min="0" max="50" step="5" value="50">
         </label>
       </div>
 
@@ -75,8 +92,10 @@
 
       <ul class="hints">
         <li><kbd>Space</kbd> capture</li>
-        <li><kbd>Backspace</kbd> undo</li>
+        <li><kbd>Backspace</kbd> remove frame</li>
+        <li><kbd>←</kbd> <kbd>→</kbd> choose frame</li>
         <li><kbd>P</kbd> play / stop</li>
+        <li><kbd>R</kbd> record audio</li>
       </ul>
     </aside>
   </main>
