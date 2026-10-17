@@ -27,14 +27,16 @@
 
     <aside class="panel" aria-label="Controls">
       <div class="field">
-        <label class="field-label" for="cameraSelect">Camera</label>
+        <div class="section-head">
+          <label class="field-label" for="cameraSelect">Camera</label>
+          <label class="check">
+            <input id="mirrorInput" type="checkbox">
+            <span>Mirror image</span>
+          </label>
+        </div>
         <select id="cameraSelect" disabled>
           <option>Waiting for camera…</option>
         </select>
-        <label class="check">
-          <input id="mirrorInput" type="checkbox">
-          <span>Mirror image</span>
-        </label>
       </div>
 
       <div class="buttons">
@@ -58,10 +60,7 @@
       </div>
 
       <div class="sound">
-        <div class="section-head">
-          <span class="field-label">Sound</span>
-          <span id="audioStatus" class="audio-status">No audio yet</span>
-        </div>
+        <span class="field-label">Sound</span>
         <select id="micSelect" aria-label="Microphone">
           <option value="">Default microphone</option>
         </select>

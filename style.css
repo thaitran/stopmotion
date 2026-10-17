@@ -333,17 +333,10 @@ kbd {
 
 .section-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
-
-.audio-status {
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-.audio-status.has-audio { color: #7ad69a; }
-.audio-status.recording { color: var(--accent); }
 
 .sound-buttons {
   display: flex;

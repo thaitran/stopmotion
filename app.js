@@ -21,7 +21,6 @@ const els = {
   micSelect: $('micSelect'),
   recordAudioBtn: $('recordAudioBtn'),
   removeAudioBtn: $('removeAudioBtn'),
-  audioStatus: $('audioStatus'),
   fpsInput: $('fpsInput'),
   fpsOut: $('fpsOut'),
   ghostInput: $('ghostInput'),
@@ -47,8 +46,7 @@ const state = {
   playIndex: 0,
   playOnEnd: null,
   exporting: false,
-  audio: null,         // { blob, buffer: AudioBuffer }
-  audioSource: null,   // AudioBufferSourceNode while playing
+  audio: null,         // { blob, url, fps }: the recording and the speed it was recorded at
   recording: null,     // { recorder } while recording audio
 };
 
@@ -252,13 +250,6 @@ function render() {
   els.frameCount.textContent = n;
   els.duration.textContent = (n / fps()).toFixed(1) + 's';
 
-  const status = els.audioStatus;
-  status.classList.toggle('recording', !!state.recording);
-  status.classList.toggle('has-audio', !state.recording && !!state.audio);
-  status.textContent = state.recording ? 'Recording…'
-    : state.audio ? `${state.audio.buffer.duration.toFixed(1)}s recorded`
-    : 'No audio yet';
-
   updateControls();
 }
 
@@ -384,7 +375,7 @@ function clearAll() {
   state.frames.forEach((f) => URL.revokeObjectURL(f.url));
   state.frames = [];
   state.current = -1;
-  state.audio = null;
+  setAudio(null);
   renderFilmstrip();
   resetFrameSize();
   render();
@@ -508,21 +499,47 @@ function audioCtx() {
   return audioContext;
 }
 
+// The soundtrack plays through a media element so it can be sped up or slowed
+// down to fit the current frame rate without changing its pitch. It is wired
+// into Web Audio so the download can record it too.
+const player = new Audio();
+player.preservesPitch = player.mozPreservesPitch = player.webkitPreservesPitch = true;
+let playerNodes = null;
+
+function playerOutput() {
+  if (!playerNodes) {
+    const ac = audioCtx();
+    const source = ac.createMediaElementSource(player);
+    const speakers = ac.createGain();
+    source.connect(speakers).connect(ac.destination);
+    playerNodes = { source, speakers };
+  }
+  return playerNodes;
+}
+
+// Stretches the recording so it lasts as long as the animation does now.
+function audioRate() {
+  return Math.min(16, Math.max(0.0625, fps() / state.audio.fps));
+}
+
 // The soundtrack always starts with the first frame.
-function startAudio() {
-  stopAudio();
-  if (!state.audio) return;
-  const ac = audioCtx();
-  const src = ac.createBufferSource();
-  src.buffer = state.audio.buffer;
-  src.connect(ac.destination);
-  src.start();
-  state.audioSource = src;
+function startAudio({ toSpeakers = true } = {}) {
+  if (!state.audio) return Promise.resolve();
+  playerOutput().speakers.gain.value = toSpeakers ? 1 : 0;
+  if (player.src !== state.audio.url) player.src = state.audio.url;
+  player.defaultPlaybackRate = player.playbackRate = audioRate();
+  player.currentTime = 0;
+  return player.play().catch(() => {});
 }
 
 function stopAudio() {
-  try { state.audioSource?.stop(); } catch {}
-  state.audioSource = null;
+  player.pause();
+}
+
+function setAudio(audio) {
+  stopAudio();
+  if (state.audio) URL.revokeObjectURL(state.audio.url);
+  state.audio = audio;
 }
 
 async function refreshMicList() {
@@ -585,16 +602,19 @@ async function toggleRecordAudio() {
     mic.getTracks().forEach((t) => t.stop());
     const blob = new Blob(chunks, { type: recorder.mimeType });
     try {
-      const buffer = await audioCtx().decodeAudioData(await blob.arrayBuffer());
-      state.audio = { blob, buffer };
+      // Check the recording is playable before replacing the old one.
+      await audioCtx().decodeAudioData(await blob.arrayBuffer());
+      setAudio({ blob, url: URL.createObjectURL(blob), fps: recordedFps });
     } catch {
       alert('Couldn’t read the recorded audio. Please try recording again.');
     }
     render();
   };
 
+  // The speed slider is locked while recording, so this is the recording's speed.
+  const recordedFps = fps();
   // Backup for the end of the pass, in case the tab is hidden and playback pauses.
-  const length = (state.frames.length / fps()) * 1000;
+  const length = (state.frames.length / recordedFps) * 1000;
   state.recording = { recorder, timer: setTimeout(stopRecording, length + 100) };
   recorder.start();
   play({ loop: false, withAudio: false, onEnd: stopRecording });
@@ -613,7 +633,7 @@ function stopRecording() {
 function removeAudio() {
   if (els.removeAudioBtn.disabled) return;
   if (!confirm('Remove the recorded audio?')) return;
-  state.audio = null;
+  setAudio(null);
   render();
 }
 
@@ -676,15 +696,12 @@ async function download() {
   }
 
   // Route the soundtrack into the recording (silently, not to the speakers).
-  let audioSrc = null;
+  let audioDest = null;
   let audioTrack = null;
   if (state.audio) {
-    const ac = audioCtx();
-    const dest = ac.createMediaStreamDestination();
-    audioSrc = ac.createBufferSource();
-    audioSrc.buffer = state.audio.buffer;
-    audioSrc.connect(dest);
-    audioTrack = dest.stream.getAudioTracks()[0];
+    audioDest = audioCtx().createMediaStreamDestination();
+    playerOutput().source.connect(audioDest);
+    audioTrack = audioDest.stream.getAudioTracks()[0];
   }
   const stream = new MediaStream(audioTrack ? [track, audioTrack] : [track]);
 
@@ -699,7 +716,7 @@ async function download() {
 
     // MediaRecorder works in real time, so frames are pushed on the clock.
     recorder.start();
-    audioSrc?.start();
+    await startAudio({ toSpeakers: false });
     const start = performance.now();
     const n = state.frames.length;
     for (let i = 0; i < n; i++) {
@@ -729,7 +746,8 @@ async function download() {
   } catch (err) {
     alert(`Export failed: ${err.message || err}`);
   } finally {
-    try { audioSrc?.stop(); } catch {}
+    stopAudio();
+    if (audioDest) playerOutput().source.disconnect(audioDest);
     track.stop();
     audioTrack?.stop();
     label.textContent = 'Download';
@@ -751,6 +769,7 @@ els.removeAudioBtn.addEventListener('click', removeAudio);
 els.fpsInput.addEventListener('input', () => {
   els.fpsOut.textContent = els.fpsInput.value;
   prefs.set('frameRate', els.fpsInput.value);
+  if (state.audio) player.playbackRate = audioRate();
   render();
 });
 
